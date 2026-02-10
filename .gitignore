@@ -11,6 +11,9 @@ ENV/
 # Database
 *.db
 
+# Streamlit
+.streamlit/
+
 # IDEs
 .vscode/
 .idea/

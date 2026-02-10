@@ -1,14 +1,15 @@
 # 🚀 Space Station Command Center
 
-A space-themed web application for managing space station missions, crew members, and experiments.
+A beautiful space-themed Streamlit web application for managing space station missions, crew members, and experiments.
 
 ## Features
 
-- 🏠 **Home Page**: Beautiful space-themed landing page
+- 🏠 **Home Page**: Beautiful space-themed landing page with animated stars and floating planets
 - 🔐 **Login System**: Secure authentication using CrewID and Password
-- 🎯 **Mission Control**: View all missions and assigned missions
+- 🎯 **Mission Control**: View all missions and your assigned missions
 - 🔬 **Experiments**: Detailed view of experiments for each mission
 - 👨‍🚀 **Crew Management**: Track crew members and their roles
+- ✨ **Modern UI**: Smooth animations, hover effects, and gradient designs
 
 ## Installation
 
@@ -19,51 +20,46 @@ pip install -r requirements.txt
 
 2. Initialize the database:
 ```bash
-python init_db.py
+python init_sqlite_db.py
 ```
 
 This will create the SQLite database with sample data including:
-- 5 crew members
-- 7 missions
-- Multiple experiments
-- Crew-mission assignments
+- 15 crew members
+- 5 missions
+- 8 experiments
 
 ## Running the Application
 
-1. Start the Flask server:
+1. Start the Streamlit app:
 ```bash
-python app.py
+streamlit run app.py
 ```
 
-2. Open your browser and navigate to:
+2. The app will automatically open in your browser at:
 ```
-http://127.0.0.1:5000
+http://localhost:8501
 ```
 
 ## Sample Login Credentials
 
-| Role | CrewID | Password |
-|------|--------|----------|
-| Commander Sarah Chen | CREW001 | galaxy123 |
-| Dr. James Martinez | CREW002 | nebula456 |
-| Engineer Alex Kim | CREW003 | orbit789 |
-| Lt. Emma Johnson | CREW004 | stellar321 |
-| Dr. Ryan Patel | CREW005 | cosmos654 |
+| Role | Crew ID | Password | Name |
+|------|---------|----------|------|
+| Commander | 1 | pass101 | Arjun |
+| Pilot | 2 | pass102 | Lina |
+| Engineer | 3 | pass103 | Kenji |
+| Scientist | 4 | pass104 | Maria |
+| Medic | 5 | pass105 | Omar |
 
 ## Application Structure
 
 ```
-DBMS CIA 3/
-├── app.py                  # Main Flask application
-├── init_db.py             # Database initialization script
-├── requirements.txt       # Python dependencies
-├── space_station.db       # SQLite database (created after init_db.py)
-└── templates/
-    ├── base.html          # Base template with navigation
-    ├── index.html         # Home page
-    ├── login.html         # Login page
-    ├── missions.html      # Missions listing page
-    └── experiments.html   # Experiments detail page
+Space-Station/
+├── app.py                  # Main Streamlit application
+├── init_sqlite_db.py       # Database initialization script
+├── requirements.txt        # Python dependencies
+├── space_station.db        # SQLite database (created after init)
+├── space_station.sql       # SQL schema reference
+└── LICENSE                 # License file
 ```
 
 ## Database Schema
@@ -73,69 +69,78 @@ DBMS CIA 3/
 1. **crew**: Stores crew member information
    - crew_id (Primary Key)
    - name
-   - password
-   - rank
-   - specialization
-
-2. **missions**: Stores mission details
-   - mission_id (Primary Key)
-   - mission_name
-   - mission_date
-   - mission_type
-   - description
-   - status
-
-3. **crew_missions**: Links crew members to missions
-   - crew_id (Foreign Key)
-   - mission_id (Foreign Key)
    - role
+   - nationality
+   - password
 
-4. **experiments**: Stores experiment information
+2. **mission**: Stores mission details
+   - mission_id (Primary Key)
+   - name
+   - purpose
+   - launch_date
+   - crew_id (Foreign Key)
+
+3. **experiment**: Stores experiment information
    - experiment_id (Primary Key)
-   - mission_id (Foreign Key)
-   - experiment_name
-   - description
+   - title
+   - field
    - status
-   - results
+   - mission_id (Foreign Key)
+   - crew_id (Foreign Key)
 
 ## Features Overview
 
-### Navigation Bar
-- **Home**: Return to landing page
-- **Login**: Authenticate crew members
-- **Missions**: View all missions (requires login)
-- **Logout**: End session
+### Home Page
+- Animated stars background
+- Floating planets
+- Feature cards with hover effects
+- Mission statistics display
+- Call-to-action buttons
 
-### Mission Page
-- View all space station missions
-- See missions assigned to logged-in crew member
-- Each mission displays:
-  - Mission name and status
-  - Date and type
-  - Description
-  - Link to view experiments
+### Login Page
+- Centered authentication card
+- Pulsing lock icon animation
+- Sample credentials display
+- Secure session management
+
+### Mission Control Page
+- View your assigned missions
+- Browse all space station missions
+- Color-coded status badges
+- Mission cards with smooth hover effects
+- Direct links to experiment details
 
 ### Experiments Page
 - View all experiments for a specific mission
-- Experiment details include:
-  - Name and ID
-  - Description
-  - Status (Planned, In Progress, Completed)
-  - Results (if available)
+- Experiment cards with status indicators
+- Summary data table
+- Back navigation to missions
 
 ## Technologies Used
 
-- **Backend**: Flask (Python web framework)
+- **Framework**: Streamlit (Python web framework)
 - **Database**: SQLite
-- **Frontend**: HTML, CSS (with space theme)
-- **Authentication**: Flask sessions
-- **Dependencies**: scikit-learn (as requested), numpy
+- **Frontend**: Custom CSS with space theme
+- **Data Display**: Pandas DataFrames
+- **Authentication**: Streamlit session state
+- **Dependencies**: streamlit, pandas, numpy
+
+## Design Features
+
+- ✨ Animated scrolling stars background
+- 🌍 Floating planets with rotation animation
+- 🎨 Gradient color scheme (cyan #00d4ff and green #00ff88)
+- 💫 Smooth hover effects and transitions
+- 🎴 Status badges with different colors
+- 📱 Responsive design
+- 🔝 Sticky navigation bar
 
 ## Notes
 
-- The application uses session-based authentication
+- The application uses Streamlit session state for authentication
 - Database is automatically created with sample data
-- All pages feature a beautiful space-themed design with animated stars
-- Responsive design works on various screen sizes
+- All pages feature a beautiful space-themed design
+- Fully responsive and works on various screen sizes
+- Real-time page updates with Streamlit's reactive model
 
 Enjoy exploring the cosmos! 🌌
