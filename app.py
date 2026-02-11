@@ -883,13 +883,12 @@ def all_missions_page():
             status_class = "status-active" if "Study" in mission['purpose'] else "status-completed" if "Observe" in mission['purpose'] else "status-planned"
             is_assigned = mission['mission_id'] in assigned_ids
             
-            assigned_badge_html = ""
-            if is_assigned:
-                assigned_badge_html = '<div style="position: absolute; top: 0.5rem; right: 0.5rem; background: rgba(0, 255, 136, 0.2); color: #00ff88; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600; border: 2px solid #00ff88;">✓ Assigned</div>'
+            assigned_badge = '✓ Assigned' if is_assigned else ''
+            assigned_style = 'display: block;' if is_assigned else 'display: none;'
             
             st.markdown(f"""
             <div class="mission-card" style="min-height: 200px; position: relative;">
-                {assigned_badge_html}
+                <div style="position: absolute; top: 0.5rem; right: 0.5rem; background: rgba(0, 255, 136, 0.2); color: #00ff88; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600; border: 2px solid #00ff88; {assigned_style}">{assigned_badge}</div>
                 <h3 style="color: #00d4ff; margin-bottom: 0.5rem;">{mission['name']}</h3>
                 <div style="margin-bottom: 1rem;">
                     <span class="status-badge {status_class}">{mission['purpose']}</span>
@@ -911,13 +910,12 @@ def all_missions_page():
                 status_class = "status-active" if "Study" in mission['purpose'] else "status-completed" if "Observe" in mission['purpose'] else "status-planned"
                 is_assigned = mission['mission_id'] in assigned_ids
                 
-                assigned_badge_html = ""
-                if is_assigned:
-                    assigned_badge_html = '<div style="position: absolute; top: 0.5rem; right: 0.5rem; background: rgba(0, 255, 136, 0.2); color: #00ff88; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600; border: 2px solid #00ff88;">✓ Assigned</div>'
+                assigned_badge = '✓ Assigned' if is_assigned else ''
+                assigned_style = 'display: block;' if is_assigned else 'display: none;'
                 
                 st.markdown(f"""
                 <div class="mission-card" style="min-height: 200px; position: relative;">
-                    {assigned_badge_html}
+                    <div style="position: absolute; top: 0.5rem; right: 0.5rem; background: rgba(0, 255, 136, 0.2); color: #00ff88; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600; border: 2px solid #00ff88; {assigned_style}">{assigned_badge}</div>
                     <h3 style="color: #00d4ff; margin-bottom: 0.5rem;">{mission['name']}</h3>
                     <div style="margin-bottom: 1rem;">
                         <span class="status-badge {status_class}">{mission['purpose']}</span>
