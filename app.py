@@ -1137,6 +1137,479 @@ def experiments_page():
         </div>
         """, unsafe_allow_html=True)
 
+# Data Management page
+def data_management_page():
+    st.markdown("""
+    <div style="text-align: center; margin-bottom: 3rem;">
+        <h1>⚙️ Data Management Center</h1>
+        <p style="color: #b0b0b0;">Add, Modify, or Delete mission data</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown(f"<p style='color: #00ff88; text-align: center;'>👨‍🚀 Welcome, <strong>{st.session_state.crew_name}</strong> (Crew ID: {st.session_state.crew_id})</p>", unsafe_allow_html=True)
+    st.markdown("---")
+    
+    # Create tabs for different data types
+    tab1, tab2, tab3 = st.tabs(["👥 Crew Management", "🚀 Mission Management", "🔬 Experiment Management"])
+    
+    # ==================== CREW MANAGEMENT ====================
+    with tab1:
+        st.markdown("### 👥 Crew Members")
+        
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            # Display all crew members
+            conn = get_db_connection()
+            crew_members = conn.execute('SELECT * FROM crew ORDER BY crew_id').fetchall()
+            conn.close()
+            
+            if crew_members:
+                crew_data = []
+                for crew in crew_members:
+                    crew_data.append({
+                        'ID': crew['crew_id'],
+                        'Name': crew['name'],
+                        'Role': crew['role'],
+                        'Nationality': crew['nationality']
+                    })
+                
+                df_crew = pd.DataFrame(crew_data)
+                st.dataframe(df_crew, use_container_width=True, hide_index=True)
+        
+        with col2:
+            st.markdown("#### Actions")
+            crew_action = st.radio("Select Action:", ["Add Crew", "Modify Crew", "Delete Crew"], key="crew_action")
+        
+        st.markdown("---")
+        
+        # ADD CREW
+        if crew_action == "Add Crew":
+            st.markdown("### ➕ Add New Crew Member")
+            with st.form("add_crew_form"):
+                new_crew_id = st.number_input("Crew ID", min_value=1, step=1, value=16)
+                new_crew_name = st.text_input("Name", max_chars=15)
+                new_crew_role = st.text_input("Role", max_chars=20)
+                new_crew_nationality = st.text_input("Nationality", max_chars=15)
+                new_crew_password = st.text_input("Password", type="password", max_chars=20)
+                
+                submit_add_crew = st.form_submit_button("Add Crew Member", use_container_width=True)
+                
+                if submit_add_crew:
+                    if new_crew_name and new_crew_password:
+                        try:
+                            conn = get_db_connection()
+                            conn.execute('''INSERT INTO crew (crew_id, name, role, nationality, password) 
+                                          VALUES (?, ?, ?, ?, ?)''',
+                                       (new_crew_id, new_crew_name, new_crew_role, new_crew_nationality, new_crew_password))
+                            conn.commit()
+                            conn.close()
+                            st.success(f"✅ Crew member '{new_crew_name}' added successfully!")
+                            st.rerun()
+                        except sqlite3.IntegrityError:
+                            st.error(f"❌ Crew ID {new_crew_id} already exists. Please use a different ID.")
+                        except Exception as e:
+                            st.error(f"❌ Error: {str(e)}")
+                    else:
+                        st.error("❌ Name and Password are required!")
+        
+        # MODIFY CREW
+        elif crew_action == "Modify Crew":
+            st.markdown("### ✏️ Modify Crew Member")
+            conn = get_db_connection()
+            crew_members = conn.execute('SELECT crew_id, name FROM crew ORDER BY crew_id').fetchall()
+            conn.close()
+            
+            crew_options = {f"{crew['crew_id']} - {crew['name']}": crew['crew_id'] for crew in crew_members}
+            selected_crew = st.selectbox("Select Crew Member to Modify:", list(crew_options.keys()))
+            
+            if selected_crew:
+                crew_id_to_modify = crew_options[selected_crew]
+                
+                conn = get_db_connection()
+                crew_data = conn.execute('SELECT * FROM crew WHERE crew_id = ?', (crew_id_to_modify,)).fetchone()
+                conn.close()
+                
+                with st.form("modify_crew_form"):
+                    mod_name = st.text_input("Name", value=crew_data['name'], max_chars=15)
+                    mod_role = st.text_input("Role", value=crew_data['role'] or "", max_chars=20)
+                    mod_nationality = st.text_input("Nationality", value=crew_data['nationality'] or "", max_chars=15)
+                    mod_password = st.text_input("Password", value=crew_data['password'], max_chars=20)
+                    
+                    submit_modify_crew = st.form_submit_button("Update Crew Member", use_container_width=True)
+                    
+                    if submit_modify_crew:
+                        if mod_name and mod_password:
+                            try:
+                                conn = get_db_connection()
+                                conn.execute('''UPDATE crew SET name = ?, role = ?, nationality = ?, password = ? 
+                                              WHERE crew_id = ?''',
+                                           (mod_name, mod_role, mod_nationality, mod_password, crew_id_to_modify))
+                                conn.commit()
+                                conn.close()
+                                st.success(f"✅ Crew member updated successfully!")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"❌ Error: {str(e)}")
+                        else:
+                            st.error("❌ Name and Password are required!")
+        
+        # DELETE CREW
+        elif crew_action == "Delete Crew":
+            st.markdown("### 🗑️ Delete Crew Member")
+            conn = get_db_connection()
+            crew_members = conn.execute('SELECT crew_id, name FROM crew ORDER BY crew_id').fetchall()
+            conn.close()
+            
+            crew_options = {f"{crew['crew_id']} - {crew['name']}": crew['crew_id'] for crew in crew_members}
+            selected_crew_delete = st.selectbox("Select Crew Member to Delete:", list(crew_options.keys()))
+            
+            if selected_crew_delete:
+                crew_id_to_delete = crew_options[selected_crew_delete]
+                
+                st.warning(f"⚠️ Are you sure you want to delete crew member: {selected_crew_delete}?")
+                st.info("Note: This will also delete all associated missions and experiments.")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("❌ Delete Permanently", use_container_width=True, type="primary"):
+                        try:
+                            conn = get_db_connection()
+                            # Delete associated experiments first
+                            conn.execute('DELETE FROM experiment WHERE crew_id = ?', (crew_id_to_delete,))
+                            # Delete associated missions
+                            conn.execute('DELETE FROM mission WHERE crew_id = ?', (crew_id_to_delete,))
+                            # Delete crew member
+                            conn.execute('DELETE FROM crew WHERE crew_id = ?', (crew_id_to_delete,))
+                            conn.commit()
+                            conn.close()
+                            st.success(f"✅ Crew member deleted successfully!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Error: {str(e)}")
+                with col2:
+                    if st.button("Cancel", use_container_width=True):
+                        st.rerun()
+    
+    # ==================== MISSION MANAGEMENT ====================
+    with tab2:
+        st.markdown("### 🚀 Missions")
+        
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            # Display all missions
+            conn = get_db_connection()
+            missions = conn.execute('''SELECT m.*, c.name as crew_name 
+                                      FROM mission m 
+                                      LEFT JOIN crew c ON m.crew_id = c.crew_id 
+                                      ORDER BY m.mission_id''').fetchall()
+            conn.close()
+            
+            if missions:
+                mission_data = []
+                for mission in missions:
+                    mission_data.append({
+                        'ID': mission['mission_id'],
+                        'Name': mission['name'],
+                        'Purpose': mission['purpose'],
+                        'Launch Date': mission['launch_date'],
+                        'Commander': mission['crew_name']
+                    })
+                
+                df_missions = pd.DataFrame(mission_data)
+                st.dataframe(df_missions, use_container_width=True, hide_index=True)
+        
+        with col2:
+            st.markdown("#### Actions")
+            mission_action = st.radio("Select Action:", ["Add Mission", "Modify Mission", "Delete Mission"], key="mission_action")
+        
+        st.markdown("---")
+        
+        # ADD MISSION
+        if mission_action == "Add Mission":
+            st.markdown("### ➕ Add New Mission")
+            with st.form("add_mission_form"):
+                new_mission_name = st.text_input("Mission Name", max_chars=20)
+                new_mission_purpose = st.text_input("Purpose", max_chars=20)
+                new_mission_date = st.date_input("Launch Date", value=datetime.now())
+                
+                conn = get_db_connection()
+                crew_list = conn.execute('SELECT crew_id, name FROM crew ORDER BY crew_id').fetchall()
+                conn.close()
+                
+                crew_options = {f"{crew['crew_id']} - {crew['name']}": crew['crew_id'] for crew in crew_list}
+                selected_commander = st.selectbox("Select Commander:", list(crew_options.keys()))
+                
+                submit_add_mission = st.form_submit_button("Add Mission", use_container_width=True)
+                
+                if submit_add_mission:
+                    if new_mission_name:
+                        try:
+                            commander_id = crew_options[selected_commander]
+                            conn = get_db_connection()
+                            conn.execute('''INSERT INTO mission (name, purpose, launch_date, crew_id) 
+                                          VALUES (?, ?, ?, ?)''',
+                                       (new_mission_name, new_mission_purpose, str(new_mission_date), commander_id))
+                            conn.commit()
+                            conn.close()
+                            st.success(f"✅ Mission '{new_mission_name}' added successfully!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Error: {str(e)}")
+                    else:
+                        st.error("❌ Mission name is required!")
+        
+        # MODIFY MISSION
+        elif mission_action == "Modify Mission":
+            st.markdown("### ✏️ Modify Mission")
+            conn = get_db_connection()
+            missions = conn.execute('SELECT mission_id, name FROM mission ORDER BY mission_id').fetchall()
+            conn.close()
+            
+            mission_options = {f"{mission['mission_id']} - {mission['name']}": mission['mission_id'] for mission in missions}
+            selected_mission = st.selectbox("Select Mission to Modify:", list(mission_options.keys()))
+            
+            if selected_mission:
+                mission_id_to_modify = mission_options[selected_mission]
+                
+                conn = get_db_connection()
+                mission_data = conn.execute('SELECT * FROM mission WHERE mission_id = ?', (mission_id_to_modify,)).fetchone()
+                crew_list = conn.execute('SELECT crew_id, name FROM crew ORDER BY crew_id').fetchall()
+                conn.close()
+                
+                with st.form("modify_mission_form"):
+                    mod_mission_name = st.text_input("Mission Name", value=mission_data['name'] or "", max_chars=20)
+                    mod_mission_purpose = st.text_input("Purpose", value=mission_data['purpose'] or "", max_chars=20)
+                    
+                    try:
+                        launch_date_val = datetime.strptime(mission_data['launch_date'], '%Y-%m-%d').date()
+                    except:
+                        launch_date_val = datetime.now().date()
+                    
+                    mod_mission_date = st.date_input("Launch Date", value=launch_date_val)
+                    
+                    crew_options = {f"{crew['crew_id']} - {crew['name']}": crew['crew_id'] for crew in crew_list}
+                    current_crew_idx = list(crew_options.values()).index(mission_data['crew_id']) if mission_data['crew_id'] in crew_options.values() else 0
+                    mod_commander = st.selectbox("Select Commander:", list(crew_options.keys()), index=current_crew_idx)
+                    
+                    submit_modify_mission = st.form_submit_button("Update Mission", use_container_width=True)
+                    
+                    if submit_modify_mission:
+                        if mod_mission_name:
+                            try:
+                                commander_id = crew_options[mod_commander]
+                                conn = get_db_connection()
+                                conn.execute('''UPDATE mission SET name = ?, purpose = ?, launch_date = ?, crew_id = ? 
+                                              WHERE mission_id = ?''',
+                                           (mod_mission_name, mod_mission_purpose, str(mod_mission_date), commander_id, mission_id_to_modify))
+                                conn.commit()
+                                conn.close()
+                                st.success(f"✅ Mission updated successfully!")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"❌ Error: {str(e)}")
+                        else:
+                            st.error("❌ Mission name is required!")
+        
+        # DELETE MISSION
+        elif mission_action == "Delete Mission":
+            st.markdown("### 🗑️ Delete Mission")
+            conn = get_db_connection()
+            missions = conn.execute('SELECT mission_id, name FROM mission ORDER BY mission_id').fetchall()
+            conn.close()
+            
+            mission_options = {f"{mission['mission_id']} - {mission['name']}": mission['mission_id'] for mission in missions}
+            selected_mission_delete = st.selectbox("Select Mission to Delete:", list(mission_options.keys()))
+            
+            if selected_mission_delete:
+                mission_id_to_delete = mission_options[selected_mission_delete]
+                
+                st.warning(f"⚠️ Are you sure you want to delete mission: {selected_mission_delete}?")
+                st.info("Note: This will also delete all associated experiments.")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("❌ Delete Permanently", use_container_width=True, type="primary", key="delete_mission_btn"):
+                        try:
+                            conn = get_db_connection()
+                            # Delete associated experiments first
+                            conn.execute('DELETE FROM experiment WHERE mission_id = ?', (mission_id_to_delete,))
+                            # Delete mission
+                            conn.execute('DELETE FROM mission WHERE mission_id = ?', (mission_id_to_delete,))
+                            conn.commit()
+                            conn.close()
+                            st.success(f"✅ Mission deleted successfully!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Error: {str(e)}")
+                with col2:
+                    if st.button("Cancel", use_container_width=True, key="cancel_delete_mission"):
+                        st.rerun()
+    
+    # ==================== EXPERIMENT MANAGEMENT ====================
+    with tab3:
+        st.markdown("### 🔬 Experiments")
+        
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            # Display all experiments
+            conn = get_db_connection()
+            experiments = conn.execute('''SELECT e.*, c.name as crew_name, m.name as mission_name
+                                         FROM experiment e
+                                         LEFT JOIN crew c ON e.crew_id = c.crew_id
+                                         LEFT JOIN mission m ON e.mission_id = m.mission_id
+                                         ORDER BY e.experiment_id''').fetchall()
+            conn.close()
+            
+            if experiments:
+                exp_data = []
+                for exp in experiments:
+                    exp_data.append({
+                        'ID': exp['experiment_id'],
+                        'Title': exp['title'],
+                        'Field': exp['field'],
+                        'Status': exp['status'],
+                        'Mission': exp['mission_name'],
+                        'Researcher': exp['crew_name']
+                    })
+                
+                df_exp = pd.DataFrame(exp_data)
+                st.dataframe(df_exp, use_container_width=True, hide_index=True)
+        
+        with col2:
+            st.markdown("#### Actions")
+            exp_action = st.radio("Select Action:", ["Add Experiment", "Modify Experiment", "Delete Experiment"], key="exp_action")
+        
+        st.markdown("---")
+        
+        # ADD EXPERIMENT
+        if exp_action == "Add Experiment":
+            st.markdown("### ➕ Add New Experiment")
+            with st.form("add_exp_form"):
+                new_exp_title = st.text_input("Experiment Title", max_chars=15)
+                new_exp_field = st.text_input("Field", max_chars=20)
+                new_exp_status = st.selectbox("Status", ["Active", "Pending", "Done"])
+                
+                conn = get_db_connection()
+                mission_list = conn.execute('SELECT mission_id, name FROM mission ORDER BY mission_id').fetchall()
+                crew_list = conn.execute('SELECT crew_id, name FROM crew ORDER BY crew_id').fetchall()
+                conn.close()
+                
+                mission_options = {f"{m['mission_id']} - {m['name']}": m['mission_id'] for m in mission_list}
+                crew_options = {f"{c['crew_id']} - {c['name']}": c['crew_id'] for c in crew_list}
+                
+                selected_mission_exp = st.selectbox("Select Mission:", list(mission_options.keys()))
+                selected_researcher = st.selectbox("Select Researcher:", list(crew_options.keys()))
+                
+                submit_add_exp = st.form_submit_button("Add Experiment", use_container_width=True)
+                
+                if submit_add_exp:
+                    if new_exp_title:
+                        try:
+                            mission_id = mission_options[selected_mission_exp]
+                            researcher_id = crew_options[selected_researcher]
+                            conn = get_db_connection()
+                            conn.execute('''INSERT INTO experiment (title, field, status, mission_id, crew_id) 
+                                          VALUES (?, ?, ?, ?, ?)''',
+                                       (new_exp_title, new_exp_field, new_exp_status, mission_id, researcher_id))
+                            conn.commit()
+                            conn.close()
+                            st.success(f"✅ Experiment '{new_exp_title}' added successfully!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Error: {str(e)}")
+                    else:
+                        st.error("❌ Experiment title is required!")
+        
+        # MODIFY EXPERIMENT
+        elif exp_action == "Modify Experiment":
+            st.markdown("### ✏️ Modify Experiment")
+            conn = get_db_connection()
+            experiments = conn.execute('SELECT experiment_id, title FROM experiment ORDER BY experiment_id').fetchall()
+            conn.close()
+            
+            exp_options = {f"{exp['experiment_id']} - {exp['title']}": exp['experiment_id'] for exp in experiments}
+            selected_exp = st.selectbox("Select Experiment to Modify:", list(exp_options.keys()))
+            
+            if selected_exp:
+                exp_id_to_modify = exp_options[selected_exp]
+                
+                conn = get_db_connection()
+                exp_data = conn.execute('SELECT * FROM experiment WHERE experiment_id = ?', (exp_id_to_modify,)).fetchone()
+                mission_list = conn.execute('SELECT mission_id, name FROM mission ORDER BY mission_id').fetchall()
+                crew_list = conn.execute('SELECT crew_id, name FROM crew ORDER BY crew_id').fetchall()
+                conn.close()
+                
+                with st.form("modify_exp_form"):
+                    mod_exp_title = st.text_input("Experiment Title", value=exp_data['title'] or "", max_chars=15)
+                    mod_exp_field = st.text_input("Field", value=exp_data['field'] or "", max_chars=20)
+                    
+                    status_options = ["Active", "Pending", "Done"]
+                    status_idx = status_options.index(exp_data['status']) if exp_data['status'] in status_options else 0
+                    mod_exp_status = st.selectbox("Status", status_options, index=status_idx)
+                    
+                    mission_options = {f"{m['mission_id']} - {m['name']}": m['mission_id'] for m in mission_list}
+                    crew_options = {f"{c['crew_id']} - {c['name']}": c['crew_id'] for c in crew_list}
+                    
+                    mission_idx = list(mission_options.values()).index(exp_data['mission_id']) if exp_data['mission_id'] in mission_options.values() else 0
+                    crew_idx = list(crew_options.values()).index(exp_data['crew_id']) if exp_data['crew_id'] in crew_options.values() else 0
+                    
+                    mod_mission_exp = st.selectbox("Select Mission:", list(mission_options.keys()), index=mission_idx)
+                    mod_researcher = st.selectbox("Select Researcher:", list(crew_options.keys()), index=crew_idx)
+                    
+                    submit_modify_exp = st.form_submit_button("Update Experiment", use_container_width=True)
+                    
+                    if submit_modify_exp:
+                        if mod_exp_title:
+                            try:
+                                mission_id = mission_options[mod_mission_exp]
+                                researcher_id = crew_options[mod_researcher]
+                                conn = get_db_connection()
+                                conn.execute('''UPDATE experiment SET title = ?, field = ?, status = ?, 
+                                              mission_id = ?, crew_id = ? WHERE experiment_id = ?''',
+                                           (mod_exp_title, mod_exp_field, mod_exp_status, mission_id, researcher_id, exp_id_to_modify))
+                                conn.commit()
+                                conn.close()
+                                st.success(f"✅ Experiment updated successfully!")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"❌ Error: {str(e)}")
+                        else:
+                            st.error("❌ Experiment title is required!")
+        
+        # DELETE EXPERIMENT
+        elif exp_action == "Delete Experiment":
+            st.markdown("### 🗑️ Delete Experiment")
+            conn = get_db_connection()
+            experiments = conn.execute('SELECT experiment_id, title FROM experiment ORDER BY experiment_id').fetchall()
+            conn.close()
+            
+            exp_options = {f"{exp['experiment_id']} - {exp['title']}": exp['experiment_id'] for exp in experiments}
+            selected_exp_delete = st.selectbox("Select Experiment to Delete:", list(exp_options.keys()))
+            
+            if selected_exp_delete:
+                exp_id_to_delete = exp_options[selected_exp_delete]
+                
+                st.warning(f"⚠️ Are you sure you want to delete experiment: {selected_exp_delete}?")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("❌ Delete Permanently", use_container_width=True, type="primary", key="delete_exp_btn"):
+                        try:
+                            conn = get_db_connection()
+                            conn.execute('DELETE FROM experiment WHERE experiment_id = ?', (exp_id_to_delete,))
+                            conn.commit()
+                            conn.close()
+                            st.success(f"✅ Experiment deleted successfully!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Error: {str(e)}")
+                with col2:
+                    if st.button("Cancel", use_container_width=True, key="cancel_delete_exp"):
+                        st.rerun()
+
 # Main app navigation
 def main():
     # Enhanced custom navigation bar with animations
@@ -1218,7 +1691,9 @@ def main():
                 st.session_state.page = 'all_missions'
                 st.rerun()
         with col4:
-            st.markdown("<div style='height: 40px;'></div>", unsafe_allow_html=True)
+            if st.button("⚙️ Manage Data", use_container_width=True, key="nav_data_mgmt"):
+                st.session_state.page = 'data_management'
+                st.rerun()
         with col5:
             if st.button("🚪 Logout", use_container_width=True, key="nav_logout"):
                 logout()
@@ -1290,7 +1765,7 @@ def main():
     st.markdown("---")
     
     # Page routing
-    if not st.session_state.logged_in and st.session_state.page in ['missions', 'all_missions', 'experiments']:
+    if not st.session_state.logged_in and st.session_state.page in ['missions', 'all_missions', 'experiments', 'data_management']:
         st.session_state.page = 'login'
     
     if st.session_state.page == 'home':
@@ -1303,6 +1778,8 @@ def main():
         all_missions_page()
     elif st.session_state.page == 'experiments':
         experiments_page()
+    elif st.session_state.page == 'data_management':
+        data_management_page()
     
     # Footer
     st.markdown("---")
