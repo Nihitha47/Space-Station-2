@@ -6,92 +6,115 @@ import os
 
 # Database initialization function
 def init_database():
-    """Initialize the database with sample data if it doesn't exist"""
-    if not os.path.exists('space_station.db'):
-        conn = sqlite3.connect('space_station.db')
-        cursor = conn.cursor()
-        
-        # Create tables
-        cursor.execute('''
-        CREATE TABLE crew (
-            crew_id INTEGER PRIMARY KEY,
-            name VARCHAR(15) NOT NULL,
-            role VARCHAR(20),
-            nationality VARCHAR(15),
-            password VARCHAR(20) NOT NULL
-        )
-        ''')
-        
-        cursor.execute('''
-        CREATE TABLE mission (
-            mission_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name VARCHAR(20),
-            purpose VARCHAR(20),
-            launch_date DATE,
-            crew_id INTEGER,
-            FOREIGN KEY (crew_id) REFERENCES crew(crew_id)
-        )
-        ''')
-        
-        cursor.execute('''
-        CREATE TABLE experiment (
-            experiment_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title VARCHAR(15),
-            field VARCHAR(20),
-            status VARCHAR(20),
-            mission_id INTEGER,
-            crew_id INTEGER,
-            FOREIGN KEY (mission_id) REFERENCES mission(mission_id),
-            FOREIGN KEY (crew_id) REFERENCES crew(crew_id)
-        )
-        ''')
-        
-        # Insert crew data
-        crew_data = [
-            (1, 'Arjun', 'Commander', 'India', 'pass101'),
-            (2, 'Lina', 'Pilot', 'USA', 'pass102'),
-            (3, 'Kenji', 'Engineer', 'Japan', 'pass103'),
-            (4, 'Maria', 'Scientist', 'Spain', 'pass104'),
-            (5, 'Omar', 'Medic', 'UAE', 'pass105'),
-            (6, 'Sofia', 'Navigator', 'Brazil', 'pass106'),
-            (7, 'Raj', 'Engineer', 'India', 'pass107'),
-            (8, 'Emma', 'Scientist', 'UK', 'pass108'),
-            (9, 'Noah', 'Tech', 'Canada', 'pass109'),
-            (10, 'Chen', 'Researcher', 'China', 'pass110'),
-            (11, 'Leo', 'Pilot', 'France', 'pass111'),
-            (12, 'Ava', 'Biologist', 'Australia', 'pass112'),
-            (13, 'Ivan', 'Engineer', 'Russia', 'pass113'),
-            (14, 'Maya', 'Doctor', 'India', 'pass114'),
-            (15, 'Lucas', 'Navigator', 'Germany', 'pass115')
-        ]
-        cursor.executemany('INSERT INTO crew VALUES (?, ?, ?, ?, ?)', crew_data)
-        
-        # Insert mission data
-        missions_data = [
-            ('MarsOne', 'PlanetStudy', '2026-03-10', 1),
-            ('MoonBase', 'HabitatStudy', '2026-04-15', 4),
-            ('AstScan', 'MineralSurvey', '2026-05-20', 7),
-            ('SolarX', 'SunObserve', '2026-06-05', 10),
-            ('DeepSky', 'GalaxyMap', '2026-07-18', 13)
-        ]
-        cursor.executemany('INSERT INTO mission (name, purpose, launch_date, crew_id) VALUES (?, ?, ?, ?)', missions_data)
-        
-        # Insert experiment data
-        experiments_data = [
-            ('ZeroPlants', 'Biology', 'Active', 1, 2),
-            ('MarsSoil', 'Geology', 'Active', 1, 3),
-            ('MoonWater', 'Chemistry', 'Done', 2, 5),
-            ('MoonRad', 'Physics', 'Active', 2, 6),
-            ('AstMetal', 'Chemistry', 'Active', 3, 8),
-            ('MineSim', 'Engineering', 'Pending', 3, 9),
-            ('SolarTest', 'Physics', 'Active', 4, 11),
-            ('DeepSignal', 'Astronomy', 'Active', 5, 14)
-        ]
-        cursor.executemany('INSERT INTO experiment (title, field, status, mission_id, crew_id) VALUES (?, ?, ?, ?, ?)', 
-                          experiments_data)
-        
-        conn.commit()
-        conn.close()
+    """Initialize the database with sample data"""
+    conn = sqlite3.connect('space_station.db')
+    cursor = conn.cursor()
+    
+    # Drop tables if they exist to ensure clean recreation
+    cursor.execute('DROP TABLE IF EXISTS mission_crew')
+    cursor.execute('DROP TABLE IF EXISTS experiment')
+    cursor.execute('DROP TABLE IF EXISTS mission')
+    cursor.execute('DROP TABLE IF EXISTS crew')
+    
+    # Create tables
+    cursor.execute('''
+    CREATE TABLE crew (
+        crew_id INTEGER PRIMARY KEY,
+        name VARCHAR(15) NOT NULL,
+        role VARCHAR(20),
+        nationality VARCHAR(15),
+        password VARCHAR(20) NOT NULL
+    )
+    ''')
+    
+    cursor.execute('''
+    CREATE TABLE mission (
+        mission_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name VARCHAR(20),
+        purpose VARCHAR(20),
+        launch_date DATE
+    )
+    ''')
+    
+    cursor.execute('''
+    CREATE TABLE experiment (
+        experiment_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title VARCHAR(15),
+        field VARCHAR(20),
+        status VARCHAR(20),
+        mission_id INTEGER,
+        crew_id INTEGER,
+        FOREIGN KEY (mission_id) REFERENCES mission(mission_id),
+        FOREIGN KEY (crew_id) REFERENCES crew(crew_id)
+    )
+    ''')
+    
+    cursor.execute('''
+    CREATE TABLE mission_crew (
+        mission_id INTEGER,
+        crew_id INTEGER,
+        PRIMARY KEY (mission_id, crew_id),
+        FOREIGN KEY (mission_id) REFERENCES mission(mission_id),
+        FOREIGN KEY (crew_id) REFERENCES crew(crew_id)
+    )
+    ''')
+    
+    # Insert crew data
+    crew_data = [
+        (1, 'Arjun', 'Commander', 'India', 'pass101'),
+        (2, 'Lina', 'Pilot', 'USA', 'pass102'),
+        (3, 'Kenji', 'Engineer', 'Japan', 'pass103'),
+        (4, 'Maria', 'Scientist', 'Spain', 'pass104'),
+        (5, 'Omar', 'Medic', 'UAE', 'pass105'),
+        (6, 'Sofia', 'Navigator', 'Brazil', 'pass106'),
+        (7, 'Raj', 'Engineer', 'India', 'pass107'),
+        (8, 'Emma', 'Scientist', 'UK', 'pass108'),
+        (9, 'Noah', 'Tech', 'Canada', 'pass109'),
+        (10, 'Chen', 'Researcher', 'China', 'pass110'),
+        (11, 'Leo', 'Pilot', 'France', 'pass111'),
+        (12, 'Ava', 'Biologist', 'Australia', 'pass112'),
+        (13, 'Ivan', 'Engineer', 'Russia', 'pass113'),
+        (14, 'Maya', 'Doctor', 'India', 'pass114'),
+        (15, 'Lucas', 'Navigator', 'Germany', 'pass115')
+    ]
+    cursor.executemany('INSERT INTO crew VALUES (?, ?, ?, ?, ?)', crew_data)
+    
+    # Insert mission data - 5 unique missions per crew
+    missions_data = []
+    purposes = ['PlanetStudy', 'HabitatStudy', 'MineralSurvey', 'SunObserve', 'GalaxyMap', 'SpaceResearch']
+    for crew_id in range(1, 16):
+        for i in range(1, 6):
+            name = f"Mission_Crew{crew_id}_{i}"
+            purpose = purposes[(i-1) % len(purposes)]
+            launch_date = f"2026-{(crew_id + i):02d}-{(10 + i):02d}"
+            missions_data.append((name, purpose, launch_date))
+    
+    cursor.executemany('INSERT INTO mission (name, purpose, launch_date) VALUES (?, ?, ?)', missions_data)
+    
+    # Assign each mission to its corresponding crew (5 per crew)
+    for mission_id in range(1, 76):
+        crew_id = ((mission_id - 1) // 5) + 1
+        cursor.execute('INSERT INTO mission_crew (mission_id, crew_id) VALUES (?, ?)', (mission_id, crew_id))
+    
+    # Insert experiment data
+    experiments_data = [
+        ('ZeroPlants', 'Biology', 'Active', 1, 2),
+        ('MarsSoil', 'Geology', 'Active', 1, 3),
+        ('PlantGrowth', 'Biology', 'Active', 1, 4),
+        ('SoilAnalysis', 'Geology', 'Pending', 1, 5),
+        ('RadiationStudy', 'Physics', 'Active', 1, 6),
+        ('MoonWater', 'Chemistry', 'Done', 2, 5),
+        ('MoonRad', 'Physics', 'Active', 2, 6),
+        ('AstMetal', 'Chemistry', 'Active', 3, 8),
+        ('MineSim', 'Engineering', 'Pending', 3, 9),
+        ('SolarTest', 'Physics', 'Active', 4, 11),
+        ('DeepSignal', 'Astronomy', 'Active', 5, 14)
+    ]
+    cursor.executemany('INSERT INTO experiment (title, field, status, mission_id, crew_id) VALUES (?, ?, ?, ?, ?)', 
+                      experiments_data)
+    
+    conn.commit()
+    conn.close()
 
 # Initialize database on app startup
 init_database()
@@ -868,10 +891,10 @@ def missions_page():
     
     # Get missions assigned to the logged-in crew member
     assigned_missions = conn.execute('''
-        SELECT m.*, c.name as commander_name 
+        SELECT m.*
         FROM mission m
-        LEFT JOIN crew c ON m.crew_id = c.crew_id
-        WHERE m.crew_id = ?
+        JOIN mission_crew mc ON m.mission_id = mc.mission_id
+        WHERE mc.crew_id = ?
         ORDER BY m.launch_date DESC
     ''', (st.session_state.crew_id,)).fetchall()
     
@@ -896,7 +919,7 @@ def missions_page():
                         <span class="status-badge {status_class}">{mission['purpose']}</span>
                     </div>
                     <p style="color: #b0b0b0; margin-bottom: 0.5rem;">📅 {mission['launch_date']}</p>
-                    <p style="color: #e0e0e0; margin-bottom: 1rem;">Mission ID: {mission['mission_id']}<br>Commander: {mission['commander_name']}</p>
+                    <p style="color: #e0e0e0; margin-bottom: 1rem;">Mission ID: {mission['mission_id']}</p>
                 </div>
                 """, unsafe_allow_html=True)
                 
@@ -918,7 +941,7 @@ def missions_page():
                             <span class="status-badge {status_class}">{mission['purpose']}</span>
                         </div>
                         <p style="color: #b0b0b0; margin-bottom: 0.5rem;">📅 {mission['launch_date']}</p>
-                        <p style="color: #e0e0e0; margin-bottom: 1rem;">Mission ID: {mission['mission_id']}<br>Commander: {mission['commander_name']}</p>
+                        <p style="color: #e0e0e0; margin-bottom: 1rem;">Mission ID: {mission['mission_id']}</p>
                     </div>
                     """, unsafe_allow_html=True)
                     
@@ -950,15 +973,14 @@ def all_missions_page():
     
     # Get all missions
     all_missions = conn.execute('''
-        SELECT m.*, c.name as commander_name 
+        SELECT m.*
         FROM mission m
-        LEFT JOIN crew c ON m.crew_id = c.crew_id
         ORDER BY m.launch_date DESC
     ''').fetchall()
     
     # Get assigned missions for the logged-in crew member
     assigned_missions = conn.execute('''
-        SELECT mission_id FROM mission WHERE crew_id = ?
+        SELECT mission_id FROM mission_crew WHERE crew_id = ?
     ''', (st.session_state.crew_id,)).fetchall()
     
     conn.close()
@@ -987,7 +1009,7 @@ def all_missions_page():
                     <span class="status-badge {status_class}">{mission['purpose']}</span>
                 </div>
                 <p style="color: #b0b0b0; margin-bottom: 0.5rem;">📅 {mission['launch_date']}</p>
-                <p style="color: #e0e0e0; margin-bottom: 1rem;">Mission ID: {mission['mission_id']}<br>Commander: {mission['commander_name']}</p>
+                <p style="color: #e0e0e0; margin-bottom: 1rem;">Mission ID: {mission['mission_id']}</p>
             </div>
             """, unsafe_allow_html=True)
             
